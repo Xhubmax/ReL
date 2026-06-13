@@ -1,4 +1,4 @@
--- [[ By : ad_pa | Auto-Collector Standalone ]] --
+-- [[ By : ad_pa | Auto-Collector Final (Standalone) ]] --
 
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Workspace = game:GetService("Workspace")
@@ -11,28 +11,24 @@ local Config = {
     Steal = {"steal"}
 }
 
+-- ضع رابط الـ Webhook الخاص بك هنا
 local WebhookURL = "https://discord.com/api/webhooks/1489215951093239890/052bJ8vjLfNKXfP5ED3iMfYZEzG8PPwBbXb9IZegNHFoNCpwbk0X5DF-YdWuqUY7hvxP"
 
--- نظام التنبيهات
+-- تنبيهات الديسكورد
 local function sendWebhook(msg)
     local data = {["content"] = "🔥 **Action:** " .. msg .. " | User: " .. LocalPlayer.Name}
     local request = syn and syn.request or http_request or request
-    pcall(function() request({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end)
+    pcall(function()
+        request({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)})
+    end)
 end
 
--- واجهة المستخدم
+-- بناء الواجهة
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size, Frame.Position = UDim2.new(0, 220, 0, 250), UDim2.new(0.5, -110, 0.4, 0)
+Frame.Size, Frame.Position = UDim2.new(0, 220, 0, 270), UDim2.new(0.5, -110, 0.4, 0)
 Frame.BackgroundColor3, Frame.Active, Frame.Draggable = Color3.fromRGB(30, 15, 40), true, true
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
-
--- العنوان
-local Title = Instance.new("TextLabel", Frame)
-Title.Size, Title.Position = UDim2.new(1, 0, 0, 30)
-Title.Text = "By : ad_pa"
-Title.TextColor3 = Color3.new(1, 1, 1); Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 18
 
 local states = {Harvest = false, Gold = false, Rainbow = false, Steal = false}
 local function createBtn(name, pos)
@@ -47,24 +43,23 @@ local function createBtn(name, pos)
     end)
 end
 
-createBtn("Harvest", 40); createBtn("Gold", 90); createBtn("Rainbow", 140); createBtn("Steal", 190)
+createBtn("Harvest", 20); createBtn("Gold", 70); createBtn("Rainbow", 120); createBtn("Steal", 170)
 
--- حلقة التجميع
+-- حلقة التجميع الرئيسية
 task.spawn(function()
     while task.wait(0.05) do
         for _, v in pairs(Workspace:GetDescendants()) do
             if v:IsA("ProximityPrompt") and v.Enabled then
                 local action = (v.ActionText .. v.ObjectText):lower()
-                local part = v.Parent
-                
                 local should = false
+                
                 if (states.Harvest and table.find(Config.Harvest, action)) or 
                    (states.Gold and table.find(Config.Gold, action)) or 
                    (states.Rainbow and table.find(Config.Rainbow, action)) then
                     should = true
                 elseif (states.Steal and table.find(Config.Steal, action)) then
                     should = true
-                    sendWebhook("تمت سرقة: " .. part.Name)
+                    sendWebhook("تمت سرقة: " .. v.Parent.Name)
                 end
                 
                 if should then fireproximityprompt(v) end
