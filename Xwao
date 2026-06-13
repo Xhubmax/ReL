@@ -1,4 +1,4 @@
--- [[ By : ad_pa | Auto-Collector + ESP Final ]] --
+-- [[ By : ad_pa | Auto-Collector + ESP Standalone ]] --
 
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Workspace = game:GetService("Workspace")
@@ -28,7 +28,7 @@ Frame.Size, Frame.Position = UDim2.new(0, 220, 0, 350), UDim2.new(0.5, -110, 0.4
 Frame.BackgroundColor3, Frame.Active, Frame.Draggable = Color3.fromRGB(30, 15, 40), true, true
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
--- إضافة العنوان: By : ad_pa
+-- العنوان
 local Title = Instance.new("TextLabel", Frame)
 Title.Size, Title.Position = UDim2.new(1, 0, 0, 30)
 Title.Text = "By : ad_pa"
