@@ -1,0 +1,94 @@
+-- [[ By : ad_pa | Auto-Collector + ESP Final ]] --
+
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+
+local Config = {
+    Harvest = {"harvest", "collect"},
+    Gold = {"gold seed", "gold", "claim"}, 
+    Rainbow = {"rainbow seed", "rainbow", "claim"},
+    Steal = {"steal"}
+}
+
+local WebhookURL = "https://discord.com/api/webhooks/1489215951093239890/052bJ8vjLfNKXfP5ED3iMfYZEzG8PPwBbXb9IZegNHFoNCpwbk0X5DF-YdWuqUY7hvxP"
+
+-- نظام التنبيهات
+local function sendWebhook(msg)
+    local data = {["content"] = "🔥 **Action:** " .. msg .. " | User: " .. LocalPlayer.Name}
+    local request = syn and syn.request or http_request or request
+    pcall(function() request({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end)
+end
+
+-- واجهة المستخدم
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size, Frame.Position = UDim2.new(0, 220, 0, 350), UDim2.new(0.5, -110, 0.4, 0)
+Frame.BackgroundColor3, Frame.Active, Frame.Draggable = Color3.fromRGB(30, 15, 40), true, true
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+
+-- إضافة العنوان: By : ad_pa
+local Title = Instance.new("TextLabel", Frame)
+Title.Size, Title.Position = UDim2.new(1, 0, 0, 30)
+Title.Text = "By : ad_pa"
+Title.TextColor3 = Color3.new(1, 1, 1); Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 18
+
+local states = {Harvest = false, Gold = false, Rainbow = false, Steal = false, ESP = false}
+local function createBtn(name, pos)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size, btn.Position = UDim2.new(0, 180, 0, 40), UDim2.new(0, 20, 0, pos)
+    btn.Text, btn.BackgroundColor3 = "AUTO " .. name:upper() .. ": OFF", Color3.fromRGB(138, 43, 226)
+    Instance.new("UICorner", btn)
+    btn.MouseButton1Click:Connect(function()
+        states[name] = not states[name]
+        btn.Text = states[name] and (name:upper() .. ": ON") or ("AUTO " .. name:upper() .. ": OFF")
+        btn.BackgroundColor3 = states[name] and Color3.fromRGB(50, 205, 50) or Color3.fromRGB(138, 43, 226)
+    end)
+end
+
+createBtn("Harvest", 40); createBtn("Gold", 90); createBtn("Rainbow", 140); createBtn("Steal", 190); createBtn("ESP", 240)
+
+-- زر الطوارئ (Delete)
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.Delete then
+        for k in pairs(states) do states[k] = false end
+        print("Panic Mode: All stopped!")
+    end
+end)
+
+-- حلقة التجميع والـ ESP
+task.spawn(function()
+    while task.wait(0.05) do
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("ProximityPrompt") and v.Enabled then
+                local action = (v.ActionText .. v.ObjectText):lower()
+                local part = v.Parent
+                
+                -- نظام الـ ESP
+                if states.ESP then
+                    if not part:FindFirstChild("Highlight") then
+                        local h = Instance.new("Highlight", part)
+                        h.FillColor = Color3.fromRGB(255, 255, 0)
+                    end
+                else
+                    if part:FindFirstChild("Highlight") then part.Highlight:Destroy() end
+                end
+
+                -- منطق التجميع
+                local should = false
+                if (states.Harvest and table.find(Config.Harvest, action)) or 
+                   (states.Gold and table.find(Config.Gold, action)) or 
+                   (states.Rainbow and table.find(Config.Rainbow, action)) then
+                    should = true
+                elseif (states.Steal and table.find(Config.Steal, action)) then
+                    should = true
+                    sendWebhook("تمت سرقة: " .. part.Name)
+                end
+                
+                if should then fireproximityprompt(v) end
+            end
+        end
+    end
+end)
