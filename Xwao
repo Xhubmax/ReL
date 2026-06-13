@@ -1,46 +1,66 @@
--- [[ Ultimate Grow Garden 2 Script | By: ad_pa ]] --
-local Workspace, Players, HttpService = game:GetService("Workspace"), game:GetService("Players"), game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
-local WebhookURL = "https://discord.com/api/webhooks/1489215951093239890/052bJ8vjLfNKXfP5ED3iMfYZEzG8PPwBbXb9IZegNHFoNCpwbk0X5DF-YdWuqUY7hvxP"
-local SelectedFruits = {}
+-- [[ Script By : ad_pa ]] --
 
--- UI Setup (Compact)
-local Gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-local Frame = Instance.new("ScrollingFrame", Gui)
-Frame.Size, Frame.Position, Frame.BackgroundColor3 = UDim2.new(0, 150, 0, 200), UDim2.new(0.5, -75, 0.3, 0), Color3.fromRGB(20, 20, 20)
-Frame.CanvasSize, Frame.Active, Frame.Draggable = UDim2.new(0, 0, 3, 0), true, true
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
 
-local function sendLog(msg)
-    pcall(function() request({Url=WebhookURL, Method="POST", Headers={["Content-Type"]="application/json"}, Body=HttpService:JSONEncode({content="🔔 "..msg})}) end)
+-- إعداد التنبيهات على الشاشة
+local function notify(text)
+    local label = Instance.new("TextLabel", LocalPlayer:WaitForChild("PlayerGui"):FindFirstChildOfClass("ScreenGui"))
+    label.Size, label.Position = UDim2.new(0, 200, 0, 50), UDim2.new(0.5, -100, 0.8, 0)
+    label.BackgroundColor3, label.Text = Color3.fromRGB(0, 0, 0), text
+    label.TextColor3, label.TextSize = Color3.new(1, 1, 1), 18
+    Instance.new("UICorner", label)
+    task.wait(2)
+    label:Destroy()
 end
 
--- Controls
-local function addToggle(name, isSteal)
-    local btn = Instance.new("TextButton", Frame)
-    btn.Size, btn.Text, btn.BackgroundColor3 = UDim2.new(0, 130, 0, 30), name, Color3.fromRGB(50, 50, 50)
-    btn.Position = UDim2.new(0, 10, 0, (#Frame:GetChildren()-1) * 35)
-    btn.MouseButton1Click:Connect(function()
-        SelectedFruits[name] = not SelectedFruits[name]
-        btn.BackgroundColor3 = SelectedFruits[name] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(50, 50, 50)
+-- إعدادات الويبهوك (تأكد من الرابط الصحيح)
+local WebhookURL = "https://discord.com/api/webhooks/1489215951093239890/052bJ8vjLfNKXfP5ED3iMfYZEzG8PPwBbXb9IZegNHFoNCpwbk0X5DF-YdWuqUY7hvxP"
+
+local function sendWebhook(msg)
+    local data = {["content"] = "🔔 " .. msg .. " | Status: I don't give up"}
+    local request = syn and syn.request or http_request or request
+    pcall(function()
+        request({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)})
     end)
 end
 
-addToggle("HarvestAll") -- تفعيل الحصاد العام
-local Fruits = {"Dragon’s Breath", "Pomegranate", "Ghost Pepper", "Cherry", "Mango", "Banana", "Coconut"} -- أضف الباقي بنفس الطريقة
-for _, f in pairs(Fruits) do addToggle(f, true) end
+-- بناء الواجهة
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size, Frame.Position = UDim2.new(0, 160, 0, 200), UDim2.new(0.5, -80, 0.3, 0)
+Frame.BackgroundColor3, Frame.Active, Frame.Draggable = Color3.fromRGB(20, 20, 20), true, true
+Instance.new("UICorner", Frame)
 
--- Logic
+local states = {Harvest = false, Steal = false}
+
+local function createBtn(name, pos)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size, btn.Position = UDim2.new(0, 140, 0, 30), UDim2.new(0, 10, 0, pos)
+    btn.Text, btn.BackgroundColor3 = name .. ": OFF", Color3.fromRGB(50, 50, 50)
+    btn.MouseButton1Click:Connect(function()
+        states[name] = not states[name]
+        btn.Text = states[name] and name .. ": ON" or name .. ": OFF"
+        btn.BackgroundColor3 = states[name] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+    end)
+end
+
+createBtn("Harvest", 20); createBtn("Steal", 60)
+
+-- الحلقة الرئيسية
 task.spawn(function()
     while task.wait(0.2) do
         for _, v in pairs(Workspace:GetDescendants()) do
             if v:IsA("ProximityPrompt") and v.Enabled then
-                local text = v.ActionText:lower()
-                -- Auto Harvest
-                if SelectedFruits["HarvestAll"] and text:find("harvest") then fireproximityprompt(v) end
-                -- Auto Steal
-                if SelectedFruits[v.Parent.Name] and text:find("steal") then 
+                local action = v.ActionText:lower()
+                if states.Harvest and action:find("harvest") then
                     fireproximityprompt(v)
-                    sendLog("تم سرقة: " .. v.Parent.Name)
+                    notify("Harvested Successfully!")
+                elseif states.Steal and action:find("steal") then
+                    fireproximityprompt(v)
+                    notify("Stolen: " .. v.Parent.Name)
+                    sendWebhook("تم سرقة: " .. v.Parent.Name)
                 end
             end
         end
