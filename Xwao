@@ -1,49 +1,46 @@
--- [[ Mobile Optimized Steal Menu ]] --
-local Workspace = game:GetService("Workspace")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-
--- القائمة الرئيسية
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 200, 0, 150); Frame.Position = UDim2.new(0.5, -100, 0.3, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Frame.Active = true; Frame.Draggable = true
-
--- قائمة اختيار الفاكهة (مخفية في البداية)
-local StealFrame = Instance.new("ScrollingFrame", ScreenGui)
-StealFrame.Size = UDim2.new(0, 220, 0, 300); StealFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
-StealFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40); StealFrame.Visible = false
-StealFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
-
+-- [[ Ultimate Grow Garden 2 Script | By: ad_pa ]] --
+local Workspace, Players, HttpService = game:GetService("Workspace"), game:GetService("Players"), game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+local WebhookURL = "https://discord.com/api/webhooks/1489215951093239890/052bJ8vjLfNKXfP5ED3iMfYZEzG8PPwBbXb9IZegNHFoNCpwbk0X5DF-YdWuqUY7hvxP"
 local SelectedFruits = {}
-local Fruits = {"Dragon’s Breath", "Moon Bloom", "Pomegranate", "Ghost Pepper", "Venus Fly Trap", "Poison Ivy", "Poison Apple", "Glow Mushroom", "Mushroom", "Acorn", "Cherry", "Sunflower", "Dragon Fruit", "Mango", "Cactus", "Baby Cactus", "Horned Melon", "Bamboo", "Grape", "Banana", "Green Bean", "Coconut", "Poi"}
 
--- زر "Steal Menu" في القائمة الرئيسية
-local StealBtn = Instance.new("TextButton", Frame)
-StealBtn.Size = UDim2.new(0, 180, 0, 50); StealBtn.Position = UDim2.new(0, 10, 0, 50)
-StealBtn.Text = "SELECT FRUITS TO STEAL"
-StealBtn.MouseButton1Click:Connect(function() StealFrame.Visible = not StealFrame.Visible end)
+-- UI Setup (Compact)
+local Gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local Frame = Instance.new("ScrollingFrame", Gui)
+Frame.Size, Frame.Position, Frame.BackgroundColor3 = UDim2.new(0, 150, 0, 200), UDim2.new(0.5, -75, 0.3, 0), Color3.fromRGB(20, 20, 20)
+Frame.CanvasSize, Frame.Active, Frame.Draggable = UDim2.new(0, 0, 3, 0), true, true
 
--- إنشاء أزرار الفواكه داخل قائمة الـ Steal
-for i, name in pairs(Fruits) do
-    local btn = Instance.new("TextButton", StealFrame)
-    btn.Size = UDim2.new(0, 200, 0, 40); btn.Position = UDim2.new(0, 10, 0, (i-1) * 45)
-    btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+local function sendLog(msg)
+    pcall(function() request({Url=WebhookURL, Method="POST", Headers={["Content-Type"]="application/json"}, Body=HttpService:JSONEncode({content="🔔 "..msg})}) end)
+end
+
+-- Controls
+local function addToggle(name, isSteal)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size, btn.Text, btn.BackgroundColor3 = UDim2.new(0, 130, 0, 30), name, Color3.fromRGB(50, 50, 50)
+    btn.Position = UDim2.new(0, 10, 0, (#Frame:GetChildren()-1) * 35)
     btn.MouseButton1Click:Connect(function()
         SelectedFruits[name] = not SelectedFruits[name]
-        btn.BackgroundColor3 = SelectedFruits[name] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
+        btn.BackgroundColor3 = SelectedFruits[name] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(50, 50, 50)
     end)
 end
 
--- حلقة السرقة التلقائية
+addToggle("HarvestAll") -- تفعيل الحصاد العام
+local Fruits = {"Dragon’s Breath", "Pomegranate", "Ghost Pepper", "Cherry", "Mango", "Banana", "Coconut"} -- أضف الباقي بنفس الطريقة
+for _, f in pairs(Fruits) do addToggle(f, true) end
+
+-- Logic
 task.spawn(function()
     while task.wait(0.2) do
         for _, v in pairs(Workspace:GetDescendants()) do
-            -- نبحث عن أي ProximityPrompt يحتوي على كلمة "steal"
-            if v:IsA("ProximityPrompt") and string.lower(v.ActionText):find("steal") then
-                local fruitName = v.Parent.Name
-                -- التحقق هل الفاكهة مختارة في القائمة؟
-                if SelectedFruits[fruitName] then
+            if v:IsA("ProximityPrompt") and v.Enabled then
+                local text = v.ActionText:lower()
+                -- Auto Harvest
+                if SelectedFruits["HarvestAll"] and text:find("harvest") then fireproximityprompt(v) end
+                -- Auto Steal
+                if SelectedFruits[v.Parent.Name] and text:find("steal") then 
                     fireproximityprompt(v)
+                    sendLog("تم سرقة: " .. v.Parent.Name)
                 end
             end
         end
