@@ -1,71 +1,91 @@
--- [[ By : ad_pa | Combined Script: Auto + ESP (Clean Version) ]] --
+-- [[ By : ad_pa | ESP Tracker + Discord Notifications ]] --
 
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = game:GetService("Players").LocalPlayer
+local HttpService = game:GetService("HttpService")
+
+-- ضع رابط الـ Webhook الخاص بك هنا
+local WebhookURL = "YOUR_WEBHOOK_URL_HERE"
 
 local Config = {
-    Harvest = {"harvest", "collect"},
-    Steal = {"steal"},
+    Steal = {"steal"}, -- أضفت الـ Steal للـ Config
     Gold = {"gold seed", "gold", "claim"}, 
     Rainbow = {"rainbow seed", "rainbow", "claim"}
 }
 
+-- دالة إرسال التنبيه
+local function sendWebhook(msg)
+    local data = {["content"] = "🔔 **Notification:** " .. msg}
+    local request = syn and syn.request or http_request or request
+    pcall(function() request({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end)
+end
+
+-- إرسال تنبيه عند تشغيل السكربت لأول مرة
+sendWebhook("السكربت تم تشغيله من قبل: " .. LocalPlayer.Name)
+
+-- [ نظام ESP ] --
+local function createESP(part, color)
+    if part:FindFirstChild("MyESP") then return end
+    local box = Instance.new("BoxHandleAdornment", part)
+    box.Name = "MyESP"
+    box.Adornee = part
+    box.Size = part.Size + Vector3.new(0.5, 0.5, 0.5)
+    box.Color3 = color
+    box.AlwaysOnTop = true
+    box.ZIndex = 10
+    box.Transparency = 0.3
+end
+
 -- واجهة التحكم
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size, Frame.Position = UDim2.new(0, 220, 0, 350), UDim2.new(0.5, -110, 0.4, 0)
+Frame.Size, Frame.Position = UDim2.new(0, 220, 0, 300), UDim2.new(0.5, -110, 0.4, 0)
 Frame.BackgroundColor3, Frame.Active, Frame.Draggable = Color3.fromRGB(30, 15, 40), true, true
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
-local Title = Instance.new("TextLabel", Frame)
-Title.Size, Title.Position = UDim2.new(1, 0, 0, 30)
-Title.Text = "By : ad_pa"
-Title.TextColor3 = Color3.new(1, 1, 1); Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 18
+local states = {Gold = false, Rainbow = false, Steal = false}
 
-local states = {Harvest = false, Steal = false, Gold = false, Rainbow = false}
-
-local function createBtn(name, pos, color, mode)
+local function createBtn(name, pos, color, isAuto)
     local btn = Instance.new("TextButton", Frame)
     btn.Size, btn.Position = UDim2.new(0, 180, 0, 40), UDim2.new(0, 20, 0, pos)
-    btn.Text, btn.BackgroundColor3 = (mode == "AUTO" and "AUTO " or "ESP ") .. name:upper() .. ": OFF", Color3.fromRGB(138, 43, 226)
+    btn.Text, btn.BackgroundColor3 = (isAuto and "AUTO " or "ESP ") .. name:upper() .. ": OFF", Color3.fromRGB(138, 43, 226)
     Instance.new("UICorner", btn)
+    
     btn.MouseButton1Click:Connect(function()
         states[name] = not states[name]
-        btn.Text = states[name] and ((mode == "AUTO" and "AUTO " or "ESP ") .. name:upper() .. ": ON") or ((mode == "AUTO" and "AUTO " or "ESP ") .. name:upper() .. ": OFF")
+        btn.Text = states[name] and ((isAuto and "AUTO " or "ESP ") .. name:upper() .. ": ON") or ((isAuto and "AUTO " or "ESP ") .. name:upper() .. ": OFF")
         btn.BackgroundColor3 = states[name] and color or Color3.fromRGB(138, 43, 226)
+        
+        -- إرسال تنبيه عند تفعيل الـ Steal
+        if name == "Steal" and states.Steal then
+            sendWebhook("تم تفعيل ميزة Auto Steal من قبل: " .. LocalPlayer.Name)
+        end
     end)
 end
 
--- الأزرار
-createBtn("Harvest", 40, Color3.fromRGB(50, 205, 50), "AUTO")
-createBtn("Steal", 90, Color3.fromRGB(255, 0, 0), "AUTO")
-createBtn("Gold", 140, Color3.fromRGB(255, 215, 0), "ESP")
-createBtn("Rainbow", 190, Color3.fromRGB(0, 255, 255), "ESP")
+createBtn("Gold", 40, Color3.fromRGB(255, 215, 0), false)
+createBtn("Rainbow", 90, Color3.fromRGB(0, 255, 255), false)
+createBtn("Steal", 140, Color3.fromRGB(255, 0, 0), true)
 
--- حلقة التشغيل
+-- الحلقة الرئيسية
 task.spawn(function()
-    while task.wait(0.05) do
+    while task.wait(0.5) do
         for _, v in pairs(Workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") and v.Enabled then
+            if v:IsA("ProximityPrompt") then
                 local action = (v.ActionText .. v.ObjectText):lower()
                 local part = v.Parent
                 
-                -- Auto
-                if (states.Harvest and table.find(Config.Harvest, action)) or (states.Steal and table.find(Config.Steal, action)) then
+                -- التجميع التلقائي للـ Steal
+                if states.Steal and table.find(Config.Steal, action) then
                     fireproximityprompt(v)
                 end
                 
-                -- ESP
-                local isESP = (states.Gold and table.find(Config.Gold, action)) or (states.Rainbow and table.find(Config.Rainbow, action))
-                if isESP then
-                    if not part:FindFirstChild("Highlight") then
-                        local h = Instance.new("Highlight", part)
-                        h.FillColor = states.Gold and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 255)
-                        h.FillTransparency = 0.3
-                    end
+                -- الـ ESP
+                local isTarget = (states.Gold and table.find(Config.Gold, action)) or (states.Rainbow and table.find(Config.Rainbow, action))
+                if isTarget then
+                    createESP(part, states.Gold and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 255))
                 else
-                    if part:FindFirstChild("Highlight") then part.Highlight:Destroy() end
+                    if part:FindFirstChild("MyESP") then part.MyESP:Destroy() end
                 end
             end
         end
