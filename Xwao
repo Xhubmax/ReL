@@ -2,7 +2,6 @@
 
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
 
 -- إعداد التنبيهات على الشاشة
 local function notify(text)
@@ -13,17 +12,6 @@ local function notify(text)
     Instance.new("UICorner", label)
     task.wait(2)
     label:Destroy()
-end
-
--- إعدادات الويبهوك (تأكد من الرابط الصحيح)
-local WebhookURL = "https://discord.com/api/webhooks/1489215951093239890/052bJ8vjLfNKXfP5ED3iMfYZEzG8PPwBbXb9IZegNHFoNCpwbk0X5DF-YdWuqUY7hvxP"
-
-local function sendWebhook(msg)
-    local data = {["content"] = "🔔 " .. msg .. " | Status: I don't give up"}
-    local request = syn and syn.request or http_request or request
-    pcall(function()
-        request({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)})
-    end)
 end
 
 -- بناء الواجهة
@@ -60,7 +48,6 @@ task.spawn(function()
                 elseif states.Steal and action:find("steal") then
                     fireproximityprompt(v)
                     notify("Stolen: " .. v.Parent.Name)
-                    sendWebhook("تم سرقة: " .. v.Parent.Name)
                 end
             end
         end
