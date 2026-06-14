@@ -1,9 +1,33 @@
--- [[ Script By : ad_pa ]] --
+-- [[ Script By : ad_pa | With Webhook ]] --
 
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
 
--- إعداد التنبيهات على الشاشة
+-- ضع رابط الويبهوك الخاص بك هنا
+local WebhookURL = "https://discord.com/api/webhooks/1489949232889856161/oWmdAZQWpp7y2pgEhq7kFKjdlhsC-GS86PSo27frNXIlcDMrcwRcxXmXoQOZLGO5JqTy"
+
+-- دالة إرسال التنبيه للديسكورد
+local function sendWebhook(title, description)
+    local data = {
+        ["embeds"] = {{
+            ["title"] = title,
+            ["description"] = description,
+            ["color"] = 16711680, -- لون أحمر
+            ["footer"] = {["text"] = "Xwao Logs"}
+        }}
+    }
+    pcall(function()
+        request({
+            Url = WebhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+end
+
+-- دالة التنبيه على الشاشة (كما هي)
 local function notify(text)
     local label = Instance.new("TextLabel", LocalPlayer:WaitForChild("PlayerGui"):FindFirstChildOfClass("ScreenGui"))
     label.Size, label.Position = UDim2.new(0, 200, 0, 50), UDim2.new(0.5, -100, 0.8, 0)
@@ -38,16 +62,22 @@ createBtn("Harvest", 20); createBtn("Steal", 60)
 
 -- الحلقة الرئيسية
 task.spawn(function()
-    while task.wait(0.2) do
+    while task.wait(0.5) do -- زيادة الوقت قليلاً للحفاظ على استقرار الويبهوك
         for _, v in pairs(Workspace:GetDescendants()) do
             if v:IsA("ProximityPrompt") and v.Enabled then
                 local action = v.ActionText:lower()
+                
                 if states.Harvest and action:find("harvest") then
                     fireproximityprompt(v)
                     notify("Harvested Successfully!")
+                    sendWebhook("Harvest Action", "Player harvested: " .. v.Parent.Name)
+                    task.wait(1) -- تأخير بسيط لمنع الحظر من ديسكورد
+                    
                 elseif states.Steal and action:find("steal") then
                     fireproximityprompt(v)
                     notify("Stolen: " .. v.Parent.Name)
+                    sendWebhook("Steal Action", "Player stolen from: " .. v.Parent.Name)
+                    task.wait(1) -- تأخير بسيط
                 end
             end
         end
